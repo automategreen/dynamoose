@@ -17,6 +17,7 @@ module.exports = {
 			"items": [
 				"guide/Schema",
 				"guide/Model",
+				"guide/Table",
 				"guide/Item",
 				"guide/Condition",
 				"guide/Query",

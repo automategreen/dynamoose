@@ -9,10 +9,10 @@ const {internalProperties} = require("../../dist/Internal").General;
 
 describe("Scan", () => {
 	beforeEach(() => {
-		dynamoose.model.defaults.set({"create": false, "waitForActive": false});
+		dynamoose.Table.defaults.set({"create": false, "waitForActive": false});
 	});
 	afterEach(() => {
-		dynamoose.model.defaults.set({});
+		dynamoose.Table.defaults.set({});
 	});
 
 	let scanPromiseResolver, scanParams;
@@ -33,6 +33,7 @@ describe("Scan", () => {
 	let Model;
 	beforeEach(() => {
 		Model = dynamoose.model("Cat", {"id": Number, "name": String, "favoriteNumber": Number});
+		new dynamoose.Table("Cat", [Model]);
 	});
 
 	describe("Model.scan", () => {
@@ -87,13 +88,15 @@ describe("Scan", () => {
 
 				it("Should return undefined for expired object", async () => {
 					scanPromiseResolver = () => ({"Items": [{"id": {"N": "1"}, "ttl": {"N": "1"}}]});
-					Model = dynamoose.model("Cat", {"id": Number}, {"expires": {"ttl": 1000, "items": {"returnExpired": false}}});
+					Model = dynamoose.model("Cat", {"id": Number});
+					new dynamoose.Table("Cat", [Model], {"expires": {"ttl": 1000, "items": {"returnExpired": false}}});
 					expect((await callType.func(Model.scan().exec).bind(Model.scan())()).map((item) => ({...item}))).to.eql([]);
 				});
 
 				it("Should return expired object if returnExpired is not set", async () => {
 					scanPromiseResolver = () => ({"Items": [{"id": {"N": "1"}, "ttl": {"N": "1"}}]});
-					Model = dynamoose.model("Cat", {"id": Number}, {"expires": {"ttl": 1000}});
+					Model = dynamoose.model("Cat", {"id": Number});
+					new dynamoose.Table("Cat", [Model], {"expires": {"ttl": 1000}});
 					expect((await callType.func(Model.scan().exec).bind(Model.scan())()).map((item) => ({...item}))).to.eql([{"id": 1, "ttl": new Date(1000)}]);
 				});
 
@@ -104,12 +107,14 @@ describe("Scan", () => {
 
 				it("Should return correct result if using custom types", async () => {
 					Model = dynamoose.model("Cat", {"id": Number, "name": String, "birthday": Date});
+					new dynamoose.Table("Cat", [Model]);
 					scanPromiseResolver = () => ({"Items": [{"id": {"N": "1"}, "name": {"S": "Charlie"}, "birthday": {"N": "1"}}]});
 					expect((await callType.func(Model.scan().exec).bind(Model.scan())()).map((item) => ({...item}))).to.eql([{"id": 1, "name": "Charlie", "birthday": new Date(1)}]);
 				});
 
 				it("Should return correct result for saveUnknown", async () => {
 					Model = dynamoose.model("Cat", new dynamoose.Schema({"id": Number}, {"saveUnknown": true}));
+					new dynamoose.Table("Cat", [Model]);
 					scanPromiseResolver = () => ({"Items": [{"id": {"N": "1"}, "name": {"S": "Charlie"}}]});
 					expect((await callType.func(Model.scan().exec).bind(Model.scan())()).map((item) => ({...item}))).to.eql([{"id": 1, "name": "Charlie"}]);
 				});
@@ -269,12 +274,14 @@ describe("Scan", () => {
 
 				it("Should return correct result for get function on attribute", async () => {
 					Model = dynamoose.model("Cat", new dynamoose.Schema({"id": Number, "name": {"type": String, "get": (val) => `${val}-get`}}));
+					new dynamoose.Table("Cat", [Model]);
 					scanPromiseResolver = () => ({"Items": [{"id": {"N": "1"}, "name": {"S": "Charlie"}}]});
 					expect((await callType.func(Model.scan().exec).bind(Model.scan())()).map((item) => ({...item}))).to.eql([{"id": 1, "name": "Charlie-get"}]);
 				});
 
 				it("Should return correct result for async get function on attribute", async () => {
 					Model = dynamoose.model("Cat", new dynamoose.Schema({"id": Number, "name": {"type": String, "get": async (val) => `${val}-get`}}));
+					new dynamoose.Table("Cat", [Model]);
 					scanPromiseResolver = () => ({"Items": [{"id": {"N": "1"}, "name": {"S": "Charlie"}}]});
 					expect((await callType.func(Model.scan().exec).bind(Model.scan())()).map((item) => ({...item}))).to.eql([{"id": 1, "name": "Charlie-get"}]);
 				});
@@ -288,6 +295,7 @@ describe("Scan", () => {
 
 					it("Should populate when calling populate function", async () => {
 						Model = dynamoose.model("Cat", {"id": Number, "name": {"type": String, "index": {"global": true}}, "parent": dynamoose.THIS});
+						new dynamoose.Table("Cat", [Model]);
 						dynamoose.aws.ddb.set({
 							"getItem": () => {
 								return {"promise": () => ({"Item": {"id": {"N": "2"}, "name": {"S": "Bob"}}})};
@@ -315,7 +323,9 @@ describe("Scan", () => {
 
 					it("Should populate when calling populate function with different model", async () => {
 						const Model2 = dynamoose.model("Dog", {"id": Number, "name": String});
+						new dynamoose.Table("Dog", [Model2]);
 						Model = dynamoose.model("Cat", {"id": Number, "name": {"type": String, "index": {"global": true}}, "parent": Model2});
+						new dynamoose.Table("Cat", [Model]);
 						dynamoose.aws.ddb.set({
 							"getItem": () => {
 								return {"promise": () => ({"Item": {"id": {"N": "2"}, "name": {"S": "Bob"}}})};
@@ -343,7 +353,9 @@ describe("Scan", () => {
 
 					it("Should populate when calling populate function with array of different models", async () => {
 						const Model2 = dynamoose.model("Dog", {"id": Number, "name": String});
+						new dynamoose.Table("Dog", [Model2]);
 						Model = dynamoose.model("Cat", {"id": Number, "name": {"type": String, "index": {"global": true}}, "parent": {"type": Array, "schema": [Model2]}});
+						new dynamoose.Table("Cat", [Model]);
 						dynamoose.aws.ddb.set({
 							"getItem": () => {
 								return {"promise": () => ({"Item": {"id": {"N": "2"}, "name": {"S": "Bob"}}})};
@@ -371,7 +383,9 @@ describe("Scan", () => {
 
 					it("Should populate when calling populate function with array of different models with multiple items", async () => {
 						const Model2 = dynamoose.model("Dog", {"id": Number, "name": String});
+						new dynamoose.Table("Dog", [Model2]);
 						Model = dynamoose.model("Cat", {"id": Number, "name": {"type": String, "index": {"global": true}}, "parent": {"type": Array, "schema": [Model2]}});
+						new dynamoose.Table("Cat", [Model]);
 						dynamoose.aws.ddb.set({
 							"getItem": (params) => {
 								return params.Key.id.N === "2" ? {"promise": () => ({"Item": {"id": {"N": "2"}, "name": {"S": "Bob"}}})} : {"promise": () => ({"Item": {"id": {"N": "3"}, "name": {"S": "Tim"}}})};
@@ -402,7 +416,9 @@ describe("Scan", () => {
 
 					it("Should populate when calling populate function with set of different models", async () => {
 						const Model2 = dynamoose.model("Dog", {"id": Number, "name": String});
+						new dynamoose.Table("Dog", [Model2]);
 						Model = dynamoose.model("Cat", {"id": Number, "name": {"type": String, "index": {"global": true}}, "parent": {"type": Set, "schema": [Model2]}});
+						new dynamoose.Table("Cat", [Model]);
 						dynamoose.aws.ddb.set({
 							"getItem": () => {
 								return {"promise": () => ({"Item": {"id": {"N": "2"}, "name": {"S": "Bob"}}})};
@@ -427,7 +443,9 @@ describe("Scan", () => {
 
 					it("Should populate when calling populate function with set of different models with multiple items", async () => {
 						const Model2 = dynamoose.model("Dog", {"id": Number, "name": String});
+						new dynamoose.Table("Dog", [Model2]);
 						Model = dynamoose.model("Cat", {"id": Number, "name": {"type": String, "index": {"global": true}}, "parent": {"type": Set, "schema": [Model2]}});
+						new dynamoose.Table("Cat", [Model]);
 						dynamoose.aws.ddb.set({
 							"getItem": (params) => {
 								return params.Key.id.N === "2" ? {"promise": () => ({"Item": {"id": {"N": "2"}, "name": {"S": "Bob"}}})} : {"promise": () => ({"Item": {"id": {"N": "3"}, "name": {"S": "Tim"}}})};
@@ -452,7 +470,8 @@ describe("Scan", () => {
 					});
 
 					it("Should autopopulate if model settings have populate set", async () => {
-						Model = dynamoose.model("Cat", {"id": Number, "name": String, "parent": dynamoose.THIS}, {"populate": "*"});
+						Model = dynamoose.model("Cat", {"id": Number, "name": String, "parent": dynamoose.THIS});
+						new dynamoose.Table("Cat", [Model], {"populate": "*"});
 						dynamoose.aws.ddb.set({
 							"getItem": () => {
 								return {"promise": () => ({"Item": {"id": {"N": "2"}, "name": {"S": "Bob"}}})};

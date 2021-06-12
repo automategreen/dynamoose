@@ -4,11 +4,11 @@
 		{
 			"type": "node",
 			"request": "launch",
-			"name": "npm run test:debug:breakpoint",
+			"name": "npm run test:debug",
 			"runtimeExecutable": "npm",
 			"runtimeArgs": [
 				"run",
-				"test:debug:breakpoint"
+				"test:debug"
 			],
 			"port": 9229,
 			"internalConsoleOptions": "openOnSessionStart",

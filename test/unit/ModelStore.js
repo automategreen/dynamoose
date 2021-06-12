@@ -8,6 +8,6 @@ describe("ModelStore", () => {
 	});
 
 	it("Should throw an error if nothing passed in", () => {
-		expect(() => ModelStore()).to.throw("You must pass in a Model or table name as a string.");
+		expect(() => ModelStore()).to.throw("You must pass in a Model or model name as a string.");
 	});
 });

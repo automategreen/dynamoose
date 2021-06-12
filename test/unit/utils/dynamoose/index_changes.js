@@ -194,7 +194,8 @@ describe("utils.dynamoose.index_changes", () => {
 
 	tests.forEach((test) => {
 		it(`Should return ${JSON.stringify(test.output)} for ${test.input}`, async () => {
-			const Model = dynamoose.model("Model", test.schema, {"create": false, "waitForActive": false, "update": false});
+			const Model = dynamoose.model("Model", test.schema);
+			new dynamoose.Table("Table", [Model], {"create": false, "waitForActive": false, "update": false});
 			expect(await utils.dynamoose.index_changes(Model.Model, test.input)).to.eql(test.output);
 		});
 	});

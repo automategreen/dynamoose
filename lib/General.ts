@@ -8,6 +8,12 @@ export type FunctionType = (...args: any[]) => any;
 export type DeepPartial<T> = {[P in keyof T]?: DeepPartial<T[P]>};
 
 // - Dynamoose
+
+// An object representing a DynamoDB key
+export type KeyObject = {[attribute: string]: string | number};
+// An item representing a DynamoDB key
+export type InputKey = string | number | KeyObject;
+
 interface ModelItemConstructor<T extends Item> {
 	new (object: {[key: string]: any}): T;
 	Model: Model<T>;

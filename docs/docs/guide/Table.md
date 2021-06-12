@@ -1,63 +1,22 @@
-The Model object represents an entity for your application. It takes in both a name and a schema(s) and has methods to interact with items in your database.
+The Table object represents a single table in DynamoDB. It takes in both a name and array of models and has methods to retrieve, and save items in the database.
 
-## dynamoose.model[&lt;Item&gt;](name, [schema][, config])
+## new dynamoose.Table(name, [models][, config])
 
-This method is the basic entry point for creating a model in Dynamoose. When you call this method a new model is created, and it returns a Item initializer that you can use to create instances of the given model.
+This method is the basic entry point for creating a table in Dynamoose.
 
-The `name` parameter is a string representing the table name that will be used to store items created by this model.  Prefixes and suffixes may be added to this name using the `config` options.
+The `name` parameter is a string representing the table name.  Prefixes and suffixes may be added to this name using the `config` options.
 
-The `schema` parameter can either be an object OR a [Schema](Schema.md) instance. If you pass in an object for the `schema` parameter it will create a Schema instance for you automatically.
+The `models` parameter is an array of [Model](Model.md) instances.
 
 ```js
 const dynamoose = require("dynamoose");
 
-const Cat = dynamoose.model("Cat", {"name": String});
-const Cat = dynamoose.model("Cat", {"name": String}, {"create": false});
-
-const Cat = dynamoose.model("Cat", new dynamoose.Schema({"name": String}));
-const Cat = dynamoose.model("Cat", new dynamoose.Schema({"name": String}), {"create": false});
+const Order = dynamoose.model("Order", {"id": String});
+const Shipment = dynamoose.model("Shipment", {"id": String});
+const Table = new dynamoose.Table("Table", [Order, Shipment]);
 ```
 
-An optional TypeScript class which extends `Item` can be provided right before the function bracket. This provides type checking when using operations like `Model.create()`.
-
-```ts
-import * as dynamoose from "dynamoose";
-import {Item} from "dynamoose/dist/Item";
-
-// Strongly typed model
-class Cat extends Item {
-	id: number;
-	name: string;
-}
-const CatModel = dynamoose.model<Cat>("Cat", {"id": Number, "name": String});
-
-// Will raise type checking error as random is not a valid field.
-CatModel.create({"id": 1, "random": "string"});
-
-// Will return the correct type of Cat
-const cat = await CatModel.get(1);
-```
-
-You can also pass in an array of Schema instances or schema objects into the `schema` paremeter. This is useful for cases of single table design where you want one model to have multiple options for a schema. Behind the scenes Dynamoose will automatically pick the closest schema to match to your item, and use that schema for all operations pertaining to that item. If no matching schema can be found, it will default to the first schema in the array.
-
-:::note
-If you use multiple schemas in one model, the hash & range keys must match for all schemas.
-:::
-
-```js
-const Cat = dynamoose.model("Cat", [
-	new dynamoose.Schema({"id": String, "name": String}),
-	{"id": String, "age": Number}
-]);
-```
-
-If you don't pass the `schema` parameter it is required that you have an existing model already registed with that name. This will use the existing model already registered.
-
-```js
-const Cat = dynamoose.model("Cat"); // Will reference existing model, or if no model exists already with name `Cat` it will throw an error.
-```
-
-The `config` parameter is an object used to customize settings for the model.
+The `config` parameter is an object used to customize settings for the table.
 
 | Name | Description | Type | Default |
 |------|-------------|------|---------|
@@ -65,8 +24,8 @@ The `config` parameter is an object used to customize settings for the model.
 | throughput | An object with settings for what the throughput for the table should be on creation, or a number which will use the same throughput for both read and write. If this is set to `ON_DEMAND` the table will use the `PAY_PER_REQUEST` billing mode. If the table is not created by Dynamoose, this object has no effect. | Object \| Number \| String |  |
 | throughput.read | What the read throughput should be set to. Only valid if `throughput` is an object. | Number | 1 |
 | throughput.write | What the write throughput should be set to. Only valid if `throughput` is an object. | Number | 1 |
-| prefix | A string that should be prepended to every model name. | String | "" |
-| suffix | A string that should be appended to every model name. | String | "" |
+| prefix | A string that should be prepended to the table name. | String |   |
+| suffix | A string that should be appended to the table name. | String |   |
 | waitForActive | Settings for how DynamoDB should handle waiting for the table to be active before enabling actions to be run on the table. This property can also be set to `false` to easily disable the behavior of waiting for the table to be active. For production environments we recommend setting this value to `false`. | Object |  |
 | waitForActive.enabled | If Dynamoose should wait for the table to be active before running actions on it. | Boolean | true |
 | waitForActive.check | Settings for how Dynamoose should check if the table is active | Object |  |
@@ -102,19 +61,116 @@ The default object is listed below.
 }
 ```
 
-## model.name
+## dynamoose.Table.defaults.get()
 
-This property is a string that represents the model name.
+This function is used to get the custom default values that you set with [dynamoose.Table.defaults.set(defaults)].
+
+```js
+console.log(dynamoose.Table.defaults.get());
+```
+
+## dynamoose.Table.defaults.set(defaults)
+
+This function is used to set default values for the config object for new tables that are created. Ensure that you set this before initializing your tables to ensure the defaults are applied to your tables.
+
+The priority of how the configuration gets set for new tables is:
+
+- Configuration object passed into table creation
+- Custom defaults provided by `dynamoose.Tables.defaults.set(defaults)`
+- Dynamoose internal defaults
+
+In the event that properties are not passed into the configuration object or custom defaults, the Dynamoose internal defaults will be used.
+
+You can set the defaults by setting the property to a custom object:
+
+```js
+dynamoose.Table.defaults.set({
+	"prefix": "MyApplication_"
+});
+```
+
+In order to revert to the default and remove custom defaults you can set it to an empty object:
+
+```js
+dynamoose.Table.defaults.set({});
+```
+
+## table.name
+
+This property is a string that represents the table name. The result will include all prefixes and suffixes.
 
 This property is unable to be set.
 
 ```js
-const User = dynamoose.model("User", {"id": String});
+const DynamoTable = new dynamoose.Table("Table", [Model]);
 
-console.log(User.name); // User
+console.log(DynamoTable.name); // Table
 ```
 
-## model.get(key[, settings][, callback])
+```js
+const DynamoTable = new dynamoose.Table("Table", [Model], {"prefix": "MyApp_"});
+
+console.log(DynamoTable.name); // MyApp_Table
+```
+
+## table.create([config][, callback])
+
+This method can be used to manually create the given table. You can also pass a function into the `callback` parameter to have it be used in a callback format as opposed to a promise format.
+
+The `config` parameter is an optional object used to customize settings for the model.
+
+| Name | Description | Type | Default |
+|------|-------------|------|---------|
+| return | What Dynamoose should return. Either a string `request`, or `undefined`. If `request` is passed in, the request object will be returned and no request will be made to DynamoDB. If `undefined` is passed in, the request will be sent to DynamoDB and the table will attempt to be created. | String \| `undefined` | `undefined` |
+
+```js
+const DynamoTable = new dynamoose.Table("Table", [Model]);
+
+try {
+	await DynamoTable.create();
+} catch (error) {
+	console.error(error);
+}
+
+// OR
+
+DynamoTable.create((error) => {
+	if (error) {
+		console.error(error);
+	} else {
+		console.log("Successfully created table");
+	}
+});
+```
+
+```js
+const DynamoTable = new dynamoose.Table("Table", [Model]);
+
+try {
+	const request = await DynamoTable.create({"return": "request"});
+	console.log("DynamoTable create request object:", request);
+} catch (error) {
+	console.error(error);
+}
+
+// OR
+
+DynamoTable.create({"return": "request"}, (error, request) => {
+	if (error) {
+		console.error(error);
+	} else {
+		console.log("DynamoTable create request object:", request);
+	}
+});
+```
+
+
+
+
+## TODO: remove below
+
+<!--
+## Model.get(key[, settings][, callback])
 
 You can use Model.get to retrieve a item from DynamoDB. This method uses the `getItem` DynamoDB API call to retrieve the object.
 
@@ -209,7 +265,7 @@ User.get({"id": 1}, (error, myUser) => {
 });
 ```
 
-## model.batchGet(keys[, settings][, callback])
+## Model.batchGet(keys[, settings][, callback])
 
 You can use Model.batchGet to retrieve multiple items from DynamoDB. This method uses the `batchGetItem` DynamoDB API call to retrieve the object.
 
@@ -327,7 +383,7 @@ User.batchGet([{"id": 1}, {"id": 2}], (error, myUsers) => {
 });
 ```
 
-## model.create(item, [settings], [callback])
+## Model.create(item, [settings], [callback])
 
 This function lets you create a new item for a given model. This function is almost identical to creating a new item and calling `item.save`, with one key difference, this function will default to setting `overwrite` to false.
 
@@ -354,7 +410,7 @@ User.create({"id": 1, "name": "Tim"}, (error, user) => {  // If a user with `id=
 });
 ```
 
-## model.batchPut(items, [settings], [callback])
+## Model.batchPut(items, [settings], [callback])
 
 This saves items to DynamoDB. This method uses the `batchWriteItem` DynamoDB API call to store your objects in the given table associated with the model. This method is overwriting, and will overwrite the data you currently have in place for the existing key for your table.
 
@@ -404,7 +460,7 @@ await User.batchPut([
 });
 ```
 
-## model.update(key[, updateObj[, settings]],[ callback])
+## Model.update(key[, updateObj[, settings]],[ callback])
 
 This function lets you update an existing item in the database. You can either pass in one object combining both the hashKey you wish to update along with the update object, or keep them separate by passing in two objects.
 
@@ -492,7 +548,7 @@ await User.update({"id": 1}, {"name": "Bob", "$ADD": {"age": 1}});
 
 The `validate` Schema attribute property will only be run on `$SET` values. This is due to the fact that Dynamoose is unaware of what the existing value is in the database for `$ADD` properties.
 
-## model.delete(key[, settings][, callback])
+## Model.delete(key[, settings][, callback])
 
 You can use Model.delete to delete a item from DynamoDB. This method uses the `deleteItem` DynamoDB API call to delete the object.
 
@@ -588,7 +644,7 @@ User.delete({"id": 1}, (error) => {
 });
 ```
 
-## model.batchDelete(keys[, settings][, callback])
+## Model.batchDelete(keys[, settings][, callback])
 
 You can use Model.batchDelete to delete items from DynamoDB. This method uses the `batchWriteItem` DynamoDB API call to delete the objects.
 
@@ -704,7 +760,7 @@ User.batchDelete([{"id": 1}, {"id": 2}], (error, response) => {
 });
 ```
 
-## model.transaction
+## Model.transaction
 
 This object has the following methods that you can call.
 
@@ -732,7 +788,7 @@ The `condition` parameter is a `dynamoose.Condition` instance that represents th
 User.transaction.condition(1, new dynamoose.Condition("age").gt(13));
 ```
 
-## model.methods.set(name, function)
+## Model.methods.set(name, function)
 
 This function allows you to add a method to the given model that you can call later. When Dynamoose calls your `function` parameter, `this` will be set to the underlying model. If an existing method exists with the given name, it will be overwritten, except if you are trying to replace an internal method, then this function will fail silently.
 
@@ -842,7 +898,7 @@ models.forEach((model) => {
 });
 ```
 
-## model.methods.delete(name)
+## Model.methods.delete(name)
 
 This allows you to delete an existing method from the model. If no existing method is assigned for that name, the function will do nothing and no error will be thrown.
 
@@ -854,7 +910,7 @@ const models = await User.scanAll();
 User.scanAll((err, models) => {});
 ```
 
-## model.methods.item.set(name, function)
+## Model.methods.item.set(name, function)
 
 This function allows you to add a method to the model items that you can call later. When Dynamoose calls your `function` parameter, `this` will be set to the underlying item. If an existing method exists with the given name, it will be overwritten, except if you are trying to replace an internal method, then this function will fail silently.
 
@@ -918,7 +974,7 @@ await user.setName("Charlie", "Fish");
 console.log("Set name");
 ```
 
-## model.methods.item.delete(name)
+## Model.methods.item.delete(name)
 
 This allows you to delete an existing method from the item. If no existing method is assigned for that name, the function will do nothing and no error will be thrown.
 
@@ -932,7 +988,7 @@ await user.setName();
 user.setName((err) => {});
 ```
 
-## model.serializeMany(items[, serializer])
+## Model.serializeMany(items[, serializer])
 
 This function takes in an array of `items` and serializes all of them. This function is very similar to [`item.serialize`](Item#itemserializeserializer) except it takes in an array of items to serialize and returns an array of those items.
 
@@ -940,7 +996,7 @@ This function takes in an array of `items` and serializes all of them. This func
 User.serializeMany(await User.scan().exec(), "myCustomSerializer");
 ```
 
-## model.serializer.add(name, serializer)
+## Model.serializer.add(name, serializer)
 
 This function adds a serializer to the model.
 
@@ -973,7 +1029,7 @@ You can also pass an array into the `serializer` parameter, which acts as a shor
 User.serializer.add("myCustomSerializer", ["id"]); // ["id"] is the same as {"include": ["id"]}
 ```
 
-## model.serializer.delete(name)
+## Model.serializer.delete(name)
 
 This function will delete the serializer from the list of serializer on the model. If no existing serializer is assigned for that name, the function will do nothing and no error will be thrown.
 
@@ -981,7 +1037,7 @@ This function will delete the serializer from the list of serializer on the mode
 User.serializer.delete("myCustomSerializer");
 ```
 
-## model.serializer.default.set([name])
+## Model.serializer.default.set([name])
 
 This function sets the default serializer for the given model. By default the default serializer has the same behavior as [`item.toJSON`](Item#itemtojson). The default serializer will be used for [`Model.serializeMany`](#modelserializemanyitems-serializer) and [`item.serialize`](Item#itemserializeserializer) if you don't pass anything into the `serializer` parameter.
 
@@ -993,4 +1049,4 @@ You can revert back to the default serializer by calling this method with no arg
 
 ```js
 User.serializer.default.set();
-```
+``` -->

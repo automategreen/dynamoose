@@ -95,13 +95,13 @@ function Transaction (transactions: Transactions, settings?: TransactionSettings
 				throw new Error.InvalidParameter(`Model "${uniqueModelNames[index]}" not found. Please register the model with dynamoose before using it in transactions.`);
 			}
 		});
-		await Promise.all(models.map((model) => model[internalProperties].pendingTaskPromise()));
+		await Promise.all(models.map((model) => model[internalProperties].table()[internalProperties].pendingTaskPromise()));
 
 		// TODO: remove `as any` here (https://stackoverflow.com/q/61111476/894067)
 		const result: any = await ddb(transactionType as any, transactionParams as any);
 		return result.Responses ? await Promise.all(result.Responses.map((item, index: number) => {
 			const modelName: string = modelNames[index];
-			const model: Model<Item> = models.find((model) => model[internalProperties].name === modelName);
+			const model: Model<Item> = models.find((model) => model.name === modelName);
 			return new model.Item(item.Item, {"type": "fromDynamo"}).conformToSchema({"customTypesDynamo": true, "checkExpiredItem": true, "saveUnknown": true, "type": "fromDynamo"});
 		})) : null;
 	})();

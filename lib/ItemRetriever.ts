@@ -66,7 +66,7 @@ abstract class ItemRetriever {
 			array["toJSON"] = utils.dynamoose.itemToJSON;
 			return array;
 		};
-		const promise = this.internalSettings.model[internalProperties].pendingTaskPromise().then(() => this.getRequest()).then((request) => {
+		const promise = this.internalSettings.model[internalProperties].table()[internalProperties].pendingTaskPromise().then(() => this.getRequest()).then((request) => {
 			const allRequest = (extraParameters = {}): any => {
 				let promise: Promise<any> = ddb(this.internalSettings.typeInformation.type as any, {...request, ...extraParameters});
 				timesRequested++;
@@ -148,7 +148,7 @@ Object.entries(Condition.prototype).forEach((prototype) => {
 ItemRetriever.prototype.getRequest = async function (this: ItemRetriever): Promise<any> {
 	const object: any = {
 		...this.settings.condition.requestObject({"conditionString": "FilterExpression", "conditionStringType": "array"}),
-		"TableName": this.internalSettings.model[internalProperties].name
+		"TableName": this.internalSettings.model[internalProperties].table()[internalProperties].name
 	};
 
 	if (this.settings.limit) {

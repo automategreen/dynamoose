@@ -1,4 +1,5 @@
 module.exports = {
 	"recursive": true,
-	"spec": ["test/unit"]
+	"spec": ["test/unit"],
+	"require": "source-map-support/register"
 };

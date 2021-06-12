@@ -13,7 +13,8 @@ describe("Populate", () => {
 
 	let User;
 	beforeEach(() => {
-		User = dynamoose.model("User", {"id": Number, "name": String, "parent": dynamoose.THIS}, {"create": false, "waitForActive": false});
+		User = dynamoose.model("User", {"id": Number, "name": String, "parent": dynamoose.THIS});
+		new dynamoose.Table("User", [User], {"create": false, "waitForActive": false});
 	});
 	afterEach(() => {
 		User = null;
@@ -71,7 +72,8 @@ describe("Populate", () => {
 					populateType.tests.forEach((test) => {
 						it(`Should return ${JSON.stringify(test.output)} for ${JSON.stringify(test.input)}`, async () => {
 							if (test.schema) {
-								User = dynamoose.model("User", test.schema, {"create": false, "waitForActive": false});
+								User = dynamoose.model("User", test.schema);
+								new dynamoose.Table("User", [User], {"create": false, "waitForActive": false});
 							}
 
 							promiseFunction = (param) => ({"Item": aws.converter().marshall(test.items.find((doc) => doc.id === parseInt(param.Key.id.N)))});

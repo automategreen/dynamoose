@@ -1,6 +1,6 @@
-import {ModelOptions, ModelOptionsOptional} from ".";
+import {TableOptions, TableOptionsOptional} from "./index";
 
-export const original: ModelOptions = {
+export const original: TableOptions = {
 	"create": true,
 	"throughput": {
 		"read": 1,
@@ -25,12 +25,12 @@ export const original: ModelOptions = {
 	// "serverSideEncryption": false,
 	// "defaultReturnValues": "ALL_NEW",
 };
-let customValue: ModelOptionsOptional = {};
+let customValue: TableOptionsOptional = {};
 const customObject = {
-	"set": (val: ModelOptionsOptional): void => {
+	"set": (val: TableOptionsOptional): void => {
 		customValue = val;
 	},
-	"get": (): ModelOptionsOptional => customValue
+	"get": (): TableOptionsOptional => customValue
 };
 
 export {customObject as custom};

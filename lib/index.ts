@@ -1,4 +1,4 @@
-import {Model, ModelOptionsOptional} from "./Model";
+import {Model} from "./Model";
 import {Schema, SchemaDefinition} from "./Schema";
 import {Condition} from "./Condition";
 import transaction from "./Transaction";
@@ -9,8 +9,9 @@ import {Item, AnyItem} from "./Item";
 import ModelStore = require("./ModelStore");
 import {ModelType} from "./General";
 import {CustomError} from "dynamoose-utils";
+import {Table} from "./Table";
 
-const model = <T extends Item = AnyItem>(name: string, schema?: Schema | SchemaDefinition | (Schema | SchemaDefinition)[], options: ModelOptionsOptional = {}): ModelType<T> => {
+const model = <T extends Item = AnyItem>(name: string, schema?: Schema | SchemaDefinition | (Schema | SchemaDefinition)[]): ModelType<T> => {
 	let model: Model<T>;
 	let storedSchema: Model<T>;
 	if (name) {
@@ -23,7 +24,7 @@ const model = <T extends Item = AnyItem>(name: string, schema?: Schema | SchemaD
 	if (!schema && storedSchema) {
 		model = storedSchema;
 	} else {
-		model = new Model(name, schema, options);
+		model = new Model(name, schema);
 	}
 	const returnObject: any = model.Item;
 	const keys = utils.array_flatten([
@@ -55,14 +56,21 @@ const model = <T extends Item = AnyItem>(name: string, schema?: Schema | SchemaD
 			returnObject[key] = model[key].bind(model);
 		}
 	});
+
+	Object.defineProperty(returnObject, "name", {
+		"configurable": false,
+		"value": returnObject.Model.name
+	});
+
 	return returnObject as any;
 };
-model.defaults = {
-	...require("./Model/defaults").custom
+Table.defaults = {
+	...require("./Table/defaults").custom
 };
 
 export = {
 	model,
+	Table,
 	Schema,
 	Condition,
 	transaction,

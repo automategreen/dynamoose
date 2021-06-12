@@ -186,7 +186,7 @@ const attributeTypesMain: DynamoDBType[] = ((): DynamoDBType[] => {
 				return numberType.dynamodbType as any;
 			}
 		}}),
-		new DynamoDBType({"name": "Model", "dynamicName": (typeSettings?: AttributeDefinitionTypeSettings): string => typeSettings.model.Model[internalProperties].name, "dynamodbType": (typeSettings?: AttributeDefinitionTypeSettings): string | string[] => {
+		new DynamoDBType({"name": "Model", "dynamicName": (typeSettings?: AttributeDefinitionTypeSettings): string => typeSettings.model.Model.name, "dynamodbType": (typeSettings?: AttributeDefinitionTypeSettings): string | string[] => {
 			const model = typeSettings.model.Model;
 			const hashKey = model[internalProperties].getHashKey();
 			const rangeKey = model[internalProperties].getRangeKey();
@@ -685,7 +685,7 @@ Schema.prototype.getIndexes = async function (this: Schema, model: Model<Item>):
 			if (indexValue.rangeKey) {
 				dynamoIndexObject.KeySchema.push({"AttributeName": indexValue.rangeKey, "KeyType": "RANGE"});
 			}
-			const throughputObject = utils.dynamoose.get_provisioned_throughput(indexValue.throughput ? indexValue : model[internalProperties].options.throughput === "ON_DEMAND" ? {} : model[internalProperties].options);
+			const throughputObject = utils.dynamoose.get_provisioned_throughput(indexValue.throughput ? indexValue : model[internalProperties].table()[internalProperties].options.throughput === "ON_DEMAND" ? {} : model[internalProperties].table()[internalProperties].options);
 			// TODO: fix up the two lines below. Using too many `as` statements.
 			if ((throughputObject as {"ProvisionedThroughput": {"ReadCapacityUnits": number; "WriteCapacityUnits": number}}).ProvisionedThroughput) {
 				dynamoIndexObject.ProvisionedThroughput = (throughputObject as {"ProvisionedThroughput": {"ReadCapacityUnits": number; "WriteCapacityUnits": number}}).ProvisionedThroughput;
