@@ -56,6 +56,37 @@ describe("Transaction", () => {
 				return expect(callType.func(dynamoose.transaction)([{"Get": {"Key": {"id": {"N": "1"}}, "TableName": "User"}}], {"type": "random"})).to.be.rejectedWith("Invalid type option, please pass in \"get\" or \"write\".");
 			});
 
+			it("Should throw error with extracted cancellation reasons if transactions cancelled", () => {
+				dynamoose.aws.ddb.set({
+					"transactGetItems": () => ({
+						"on": () => undefined,
+						"promise": () => Promise.reject({
+							"CancellationReasons": [{
+								"Code": "ConditionalCheckFailed",
+								"Message": "The conditional request failed"
+							},
+							{
+								"Code": "ConditionalCheckFailed",
+								"Message": "The conditional request failed"
+							}]
+						})
+					})
+				});
+
+				dynamoose.model("User", {"id": Number, "name": String});
+				dynamoose.model("Credit", {"id": Number, "name": String});
+				return expect(callType.func(dynamoose.transaction)([{"Get": {"Key": {"id": {"N": "1"}}, "TableName": "User"}}, {"Get": {"Key": {"id": {"N": "2"}}, "TableName": "Credit"}}])).to.be.rejectedWith({
+					"CancellationReasons": [{
+						"Code": "ConditionalCheckFailed",
+						"Message": "The conditional request failed"
+					},
+					{
+						"Code": "ConditionalCheckFailed",
+						"Message": "The conditional request failed"
+					}]
+				});
+			});
+
 			it("Should throw error if model hasn't been created", () => {
 				dynamoose.model("User", {"id": Number, "name": String});
 				return expect(callType.func(dynamoose.transaction)([{"Get": {"Key": {"id": {"N": "1"}}, "TableName": "User"}}, {"Get": {"Key": {"id": {"N": "2"}}, "TableName": "Credit"}}])).to.be.rejectedWith("Model \"Credit\" not found. Please register the model with dynamoose before using it in transactions.");
@@ -67,6 +98,7 @@ describe("Transaction", () => {
 					"transactGetItems": (params) => {
 						transactParams = params;
 						return {
+							"on": () => undefined,
 							"promise": () => Promise.resolve({})
 						};
 					}
@@ -103,6 +135,7 @@ describe("Transaction", () => {
 					"transactWriteItems": (params) => {
 						transactParams = params;
 						return {
+							"on": () => undefined,
 							"promise": () => Promise.resolve({})
 						};
 					}
@@ -136,6 +169,7 @@ describe("Transaction", () => {
 			it("Should use correct response from AWS", () => {
 				dynamoose.aws.ddb.set({
 					"transactGetItems": () => ({
+						"on": () => undefined,
 						"promise": () => Promise.resolve({"Responses": [{"Item": {"id": {"N": "1"}, "name": {"S": "Bob"}}}, {"Item": {"id": {"N": "2"}, "name": {"S": "My Credit"}}}]})
 					})
 				});
@@ -151,6 +185,7 @@ describe("Transaction", () => {
 			it("Should return null if no response from AWS", () => {
 				dynamoose.aws.ddb.set({
 					"transactGetItems": () => ({
+						"on": () => undefined,
 						"promise": () => Promise.resolve({})
 					})
 				});
@@ -166,6 +201,7 @@ describe("Transaction", () => {
 					"transactWriteItems": (params) => {
 						transactParams = params;
 						return {
+							"on": () => undefined,
 							"promise": () => Promise.resolve({})
 						};
 					}
@@ -183,6 +219,7 @@ describe("Transaction", () => {
 					"transactGetItems": (params) => {
 						transactParams = params;
 						return {
+							"on": () => undefined,
 							"promise": () => Promise.resolve({})
 						};
 					}
