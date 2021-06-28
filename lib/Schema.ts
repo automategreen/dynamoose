@@ -421,7 +421,8 @@ export class Schema {
 			}
 			const {typeDetails, matchedTypeDetailsIndex, matchedTypeDetailsIndexes} = typeCheckResult;
 			const hasMultipleTypes = Array.isArray(typeDetails);
-			const isObject = typeof value === "object" && value !== null;
+			// Added Fix for differentiating Buffer from rest of object types to avoid iterating over entries in Buffer
+			const isObject = typeof value === "object" && !(value instanceof Buffer) && value !== null;
 
 			if (hasMultipleTypes) {
 				if (matchedTypeDetailsIndexes.length > 1 && isObject) {
