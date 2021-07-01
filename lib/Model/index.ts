@@ -894,7 +894,7 @@ export class Model<T extends DocumentCarrier = AnyDocument> {
 			};
 		};
 
-		const documentify = (document): Promise<any> => new this.Document(document, {"type": "fromDynamo"}).conformToSchema({"customTypesDynamo": true, "checkExpiredItem": true, "type": "fromDynamo"});
+		const documentify = (document): Promise<any> => new this.Document(document, {"type": "fromDynamo"}).conformToSchema({"customTypesDynamo": true, "checkExpiredItem": true, "type": "fromDynamo", "saveUnknown": true});
 		const localSettings: ModelUpdateSettings = settings;
 		const updateItemParamsPromise: Promise<DynamoDB.UpdateItemInput> = this.pendingTaskPromise().then(async () => ({
 			"Key": this.Document.objectToDynamo(keyObj),

@@ -3491,6 +3491,17 @@ describe("Model", () => {
 					});
 				});
 
+				it("Should return updated document with object property upon success", async () => {
+					User = dynamoose.model("User", new dynamoose.Schema({"id": Number, "address": Object}, {"saveUnknown": true}));
+					updateItemFunction = () => Promise.resolve({"Attributes": {"id": {"N": "1"}, "address": {"M": {"zip": {"N": "12345"}, "country": {"S": "world"}}}}});
+					const result = await callType.func(User).bind(User)({"id": 1, "address": {"zip": 12345, "country": "world"}});
+					expect(result.constructor.name).to.eql("Document");
+					expect({...result}).to.eql({
+						"id": 1,
+						"address": {"zip": 12345, "country": "world"}
+					});
+				});
+
 				it("Should not throw error if validation passes", () => {
 					updateItemFunction = () => Promise.resolve({});
 					User = dynamoose.model("User", {"id": Number, "myNumber": {"type": Number, "validate": (val) => val > 10}});
